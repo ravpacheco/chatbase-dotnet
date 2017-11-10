@@ -30,7 +30,7 @@ namespace Chatbase
         public string version;
 
         private static String ContentType
-        { 
+        {
             get { return "application/json"; }
         }
         private static String SingluarMessageEndpoint
@@ -53,9 +53,17 @@ namespace Chatbase
         {
             get { return "https://chatbase.com/api/facebook/send_message?api_key={0}&version={1}"; }
         }
-         private static String BatchFBAgentMessageEndpoint
+        private static String BatchFBAgentMessageEndpoint
         {
             get { return "https://chatbase.com/api/facebook/send_message_batch?api_key={0}"; }
+        }
+        private static String SingluarEventEndpoint
+        {
+            get { return "https://api.chatbase.com/apis/v1/events/insert"; }
+        }
+        private static String BatchEventEndpoint
+        {
+            get { return "https://api.chatbase.com/apis/v1/events/insert_batch"; }
         }
 
         public async Task<HttpResponseMessage> Send(Message msg)
@@ -69,6 +77,33 @@ namespace Chatbase
             string json = sr.ReadToEnd();
             StringContent content = new StringContent(json, Encoding.UTF8, Client.ContentType);
             return await client.PostAsync(Client.SingluarMessageEndpoint, content);
+        }
+
+        public Task<HttpResponseMessage> Send(Event @event)
+        {
+            var stream = new MemoryStream();
+            var serializer = new DataContractJsonSerializer(
+                typeof(Event));
+            serializer.WriteObject(stream, @event);
+            stream.Position = 0;
+            var streamReader = new StreamReader(stream);
+            string json = streamReader.ReadToEnd();
+            var stringContent = new StringContent(json, Encoding.UTF8, Client.ContentType);
+            return client.PostAsync(SingluarEventEndpoint, stringContent);
+        }
+
+        public Task<HttpResponseMessage> Send(EventSet eventSet)
+        {
+            var stream = new MemoryStream();
+            var serializer = new DataContractJsonSerializer(
+                typeof(MessageSet),
+                new Type[] { typeof(EventCollection), typeof(Event) });
+            serializer.WriteObject(stream, eventSet);
+            stream.Position = 0;
+            var streamReader = new StreamReader(stream);
+            string json = streamReader.ReadToEnd();
+            var stringContent = new StringContent(json, Encoding.UTF8, Client.ContentType);
+            return client.PostAsync(BatchEventEndpoint, stringContent);
         }
 
         public async Task<HttpResponseMessage> Send(FBUserMessage msg)
@@ -125,7 +160,7 @@ namespace Chatbase
             MemoryStream stream = new MemoryStream();
             DataContractJsonSerializer ser = new DataContractJsonSerializer(
                 typeof(MessageSet),
-                new Type[]{typeof(MessageCollection), typeof(Message)});
+                new Type[] { typeof(MessageCollection), typeof(Message) });
             ser.WriteObject(stream, set);
             stream.Position = 0;
             StreamReader sr = new StreamReader(stream);
@@ -189,19 +224,23 @@ namespace Chatbase
 
         private Message setMessageWithClientProperties(Message msg)
         {
-            if (!String.IsNullOrEmpty(api_key)) {
+            if (!String.IsNullOrEmpty(api_key))
+            {
                 msg.api_key = api_key;
             }
-            if (!String.IsNullOrEmpty(user_id)) {
+            if (!String.IsNullOrEmpty(user_id))
+            {
                 msg.user_id = user_id;
             }
-            if (!String.IsNullOrEmpty(platform)) {
+            if (!String.IsNullOrEmpty(platform))
+            {
                 msg.platform = platform;
             }
-            if (!String.IsNullOrEmpty(version)) {
+            if (!String.IsNullOrEmpty(version))
+            {
                 msg.version = version;
             }
-            
+
             return msg;
         }
 
