@@ -130,7 +130,7 @@ namespace Chatbase.UnitTests
 
         [Theory]
         [InlineData("integration-test-user", "integration-test-platform", "0")]
-        public void SendingWithAPIKeyReturnsError(string uid, string plt, string ver)
+        public void SendingWithoutAPIKeyReturnsError(string uid, string plt, string ver)
         {
             Chatbase.Message msg = new Chatbase.Message();
             msg.user_id = uid;
@@ -157,6 +157,82 @@ namespace Chatbase.UnitTests
               Assert.Equal(resp.StatusCode, HttpStatusCode.OK);
             }
         }
+
+        [Theory]
+        [InlineData("integration-test-user", "integration-test-platform", "string-value", 1, 2.5f, true)]
+        public void SendingValidEventReturnsSuccess(string uid, string plt, string stringValue, int integerValue, float floatValue, bool booleanValue)
+        {
+            string key = Environment.GetEnvironmentVariable("CB_TEST_API_KEY");
+            if (String.IsNullOrEmpty(key))
+            {
+                ChatbaseClientUnitTests.PrintNoAPIKeyWarning();
+            }
+            else
+            {
+                var @event = new Event
+                {
+                    ApiKey = key,
+                    UserId = uid,
+                    Platform = plt,
+                    Properties = new EventProperty[]
+                    {
+                        new EventProperty
+                        {
+                            PropertyName = nameof(stringValue),
+                            StringValue = stringValue
+                        },
+                        new EventProperty
+                        {
+                            PropertyName = nameof(integerValue),
+                            IntegerValue = integerValue
+                        },
+                        new EventProperty
+                        {
+                            PropertyName = nameof(floatValue),
+                            FloatValue = floatValue
+                        },
+                        new EventProperty
+                        {
+                            PropertyName = nameof(booleanValue),
+                            BoolValue = booleanValue
+                        }
+                    }
+                };
+
+                var resp = _client.Send(@event).Result;
+                Assert.Equal(resp.StatusCode, HttpStatusCode.OK);
+            }
+        }
+
+        [Theory]
+        [InlineData("integration-test-platform", "string-value")]
+        public void SendingInvalidEventShouldFalid(string plt, string stringValue)
+        {
+            string key = Environment.GetEnvironmentVariable("CB_TEST_API_KEY");
+            if (String.IsNullOrEmpty(key))
+            {
+                ChatbaseClientUnitTests.PrintNoAPIKeyWarning();
+            }
+            else
+            {
+                var @event = new Event
+                {
+                    Platform = plt,
+                    Properties = new EventProperty[]
+                    {
+                        new EventProperty
+                        {
+                            PropertyName = nameof(stringValue),
+                            StringValue = stringValue
+                        }
+                    }
+                };
+
+                var resp = _client.Send(@event).Result;
+                Assert.Equal(resp.StatusCode, HttpStatusCode.BadRequest);
+            }
+        }
+
 
         [Theory]
         [InlineData("integration-test-user", "integration-test-platform", "0")]
